@@ -12,4 +12,4 @@ So, now let me answer that question: what is Rust? It's a tool like every other 
 
 ## Okay, let's talk applications of Rust
 
-... I need to think of a good example ...
+With the emergence of [Web Assembly](https://webassembly.org/), we can now write native code in Rust and then compile it to run in the browser. The meat of this tutorial is going to focus on using tools such as `wasm-bindgen` and `wasm-pack` to compile our Rust to WASM and then run it on the web.
