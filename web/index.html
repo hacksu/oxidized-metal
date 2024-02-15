@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Super Awesome Image Processor</title>
+  </head>
+  <body>
+
+    <form>
+        <input type="file" id="image" />
+    </form>
+
+    <script type="module">
+      import init, { processImage } from "../pkg/oxidized_metal.js";
+
+      init().then(() => {
+        const input = document.getElementById("image"); // get our image file upload element
+        input.addEventListener("change", async () => {
+            const file = input.files[0]; // on change, get the first file
+            const reader = new FileReader(); // create a file reader
+            reader.readAsArrayBuffer(file); // read the file as raw binary data
+            const arrayBuffer = await new Promise((res, rej) => reader.onload = () => res(reader.result)); // promisify the load event to await it
+            const uint8Array = new Uint8Array(arrayBuffer); // convert the raw binary data to a typed array
+            processImage(uint8Array); // pass the typed array to our WASM function
+        });
+      })
+
+    </script>
+  </body>
+</html>
