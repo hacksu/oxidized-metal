@@ -37,7 +37,7 @@ If you already have Rust installed, run `rustup update`, which will update it to
 
 We also have to install `wasm-pack` which we can do with `cargo install wasm-pack` once we have Rust installed.
 
-## Let's get going!
+## Let's get going: boilerplate
 
 So now that we have Rust installed, we can create a project with `cargo init epic-rust-project --lib`. Now, normally, we wouldn't use the `--lib` option, but in our case since we are creating a *WASM library*, we want to use `--lib` to signify that we are creating a library package.
 
@@ -173,4 +173,49 @@ Let's make a folder in the root of our project and call it `web`. In this web fo
 This is just some boilerplate code I wrote to get our web code meshing with our Rust code. I use some fancy async/await and Promise magic but basically: this code waits for our WASM to load, adds an event listener to the file input form, reads the file (as bytes) and then passes it to our Rust code. Once the Rust function (processImage) finishes, we then take the ImageData it generates and create a Canvas to display it on.
 
 Currently, this does absolutely NOTHING. Sure, we read the bytes and pass them to Rust, but this does nothing for us. Let's make it do something.
+
+## The (very cool) Rust part
+
+Since we hand off all of the bytes to Rust, we recieve them as Rust's `Vec<u8>` type. This is identical to a `vector<char>` (surprise, characters are bytes!) in C++. The PPM file specification says that PPM files will always be setup like this:
+```
+<magic number> <width> <height> <max pixel value>
+<all of the raw data>
+```
+
+So let's make a data structure that can process this. We don't have classes, but we do have structs and we can implement functions on those structs. Let's do that. We're going to build a simple Parser that can parse our PPM files:
+```Rust
+// data structure to hold our list of bytes
+// and our current index in that list of bytes
+struct Parser {
+    data: Vec<u8>,
+    index: usize,
+}
+
+// we use the `impl` keyword to specify functions on our struct 
+impl Parser {
+
+    // skip over bytes if they are a whitespace ascii character
+    fn next(&mut self) {
+        while self.data[self.index].is_ascii_whitespace() {
+            self.index += 1;
+        }
+    }
+
+    // read our an ascii string from our byte list
+    fn read_ascii(&mut self) -> &str {
+        self.next();
+        let initial_index = self.index;
+        while !self.data[self.index].is_ascii_whitespace() {
+            self.index += 1;
+        }
+        return str::from_utf8(&self.data[initial_index..self.index]).unwrap();
+    }
+
+    // dump all of the raw bytes from our current index to the end
+    fn raw(&mut self) -> Vec<u8> {
+        self.next();
+        return self.data[self.index..].to_vec();
+    }
+}
+``` 
 
