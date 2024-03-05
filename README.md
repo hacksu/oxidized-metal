@@ -26,3 +26,151 @@ Lets model this problem in Rust and see how easy it is to solve it without rippi
 ## Woah woah.. Rust is a native language?
 
 With [WebAssembly](https://webassembly.org/) (or WASM), we can now write native code in Rust and then compile it to run in the browser. The meat of this tutorial is going to focus on using tools such as `wasm-pack` to compile our Rust to WASM and then run it on the web. 
+
+## Rust installation
+
+For those who want to follow along on their own machines, you're going to need `cargo` and `rustc`, which is Rust's package manager and compiler.
+
+Rust is pretty easy to install and has support for Windows and Linux alike. They provide a tool called `rustup` which manages your Rust installation for you. You can get Rust at [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install). For Windows users, we are going to need the build tools provided by Visual Studio 2022, which you should already have if you didn't uninstall it after CS1. 
+
+If you already have Rust installed, run `rustup update`, which will update it to the latest version.
+
+We also have to install `wasm-pack` which we can do with `cargo install wasm-pack` once we have Rust installed.
+
+## Let's get going!
+
+So now that we have Rust installed, we can create a project with `cargo init epic-rust-project --lib`. Now, normally, we wouldn't use the `--lib` option, but in our case since we are creating a *WASM library*, we want to use `--lib` to signify that we are creating a library package.
+
+Once `cargo init` finishes, we should see a directory structure like the one below:
+```
+epic-rust-project/
+├── Cargo.toml
+└── src
+    └── lib.rs
+```
+
+In `lib.rs`, we should have some Rust code:
+```Rust
+pub fn add(left: usize, right: usize) -> usize {
+    left + right
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
+}
+```
+
+Let's remove it all and replace it with the following:
+```Rust
+use wasm_bindgen::prelude::wasm_bindgen;
+
+#[wasm_bindgen(js_name = processImage)]
+pub fn process_image(_data: Vec<u8>) {
+  // nothing yet
+}
+```
+
+Upon doing this, you're going to see that there are some errors. That's okay. We are just missing some dependencies. Let's modify our `Cargo.toml` file to fix this.
+
+It should currently look like this:
+```TOML
+[package]
+name = "epic-rust-project"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+```
+
+Let's add a few lines to the dependencies and specify that we want our library to be a C dynamic library:
+```TOML
+[package]
+name = "epic-rust-project"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = [ "cdylib" ]
+
+[dependencies]
+wasm-bindgen = "0.2.91"
+js-sys = "0.3.68"
+
+[dependencies.web-sys]
+version = "0.3.4"
+features = [
+  'ImageData',
+]
+```
+
+Our errors should be gone! Now let's use `wasm-pack build --web`. This should compile our project to Web Assembly, we should have a `pkg` folder with all of our generated JavaScript and WASM files.
+
+```
+pkg
+├── epic_rust_project_bg.wasm
+├── epic_rust_project_bg.wasm.d.ts
+├── epic_rust_project.d.ts
+├── epic_rust_project.js
+└── package.json
+
+1 directory, 5 files
+```
+
+Let's make a folder in the root of our project and call it `web`. In this web folder, let's make an `index.html` file and add some code to it:
+```HTML
+<!doctype html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>Super Awesome Image Processor</title>
+  </head>
+  <body>
+
+    <form>
+        <input type="file" id="image" accept=".ppm" />
+    </form>
+
+    <script type="module">
+      import init, { processImage } from "../pkg/oxidized_metal.js";
+
+      init().then(() => {
+        const input = document.getElementById("image");
+        input.addEventListener("change", async () => {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            const arrayBuffer = await new Promise((res, rej) => reader.onload = () => res(reader.result));
+            
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const image = processImage(uint8Array);
+
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            context.putImageData(image, 0, 0);
+
+            document.body.appendChild(canvas);
+        });
+      })
+
+    </script>
+  </body>
+</html>
+```
+
+This is just some boilerplate code I wrote to get our web code meshing with our Rust code. I use some fancy async/await and Promise magic but basically: this code waits for our WASM to load, adds an event listener to the file input form, reads the file (as bytes) and then passes it to our Rust code. Once the Rust function (processImage) finishes, we then take the ImageData it generates and create a Canvas to display it on.
+
+Currently, this does absolutely NOTHING. Sure, we read the bytes and pass them to Rust, but this does nothing for us. Let's make it do something.
+

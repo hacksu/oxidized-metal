@@ -37,7 +37,7 @@ impl Parser {
 }
 
 #[wasm_bindgen(js_name = processImage)]
-pub fn process_image(data: Vec<u8>) {
+pub fn process_image(data: Vec<u8>) -> ImageData {
     let mut parser = Parser {
         data: data,
         index: 0,
@@ -66,30 +66,6 @@ pub fn process_image(data: Vec<u8>) {
         index += 3;
     }
 
-    // create a new canvas element
-    let window = web_sys::window().unwrap();    
-    let document = window.document().unwrap();
-    let body = document.body().unwrap();
-    let canvas = document.create_element("canvas").unwrap();
-    canvas.set_attribute("width", width.to_string().as_str()).unwrap();
-    canvas.set_attribute("height", height.to_string().as_str()).unwrap();
-
-    let canvas: web_sys::HtmlCanvasElement = canvas
-        .dyn_into::<web_sys::HtmlCanvasElement>()
-        .map_err(|_| ())
-        .expect("Failed to cast Element to CanvasElement");
-
-    let context = canvas
-        .get_context("2d")
-        .unwrap()
-        .unwrap()
-        .dyn_into::<web_sys::CanvasRenderingContext2d>()
-        .expect("Failed to grab 2d canvas context.");
-    
-    // put out image data in the canvas element
     let image = ImageData::new_with_u8_clamped_array_and_sh(wasm_bindgen::Clamped(&output), width, height).expect("Failed to create image data.");
-    context.put_image_data(&image, 0.0, 0.0).expect("Failed to put image data on canvas.");
-
-    // add the canvas element to the DOM!
-    body.append_child(&canvas).unwrap();
+    return image;
 }

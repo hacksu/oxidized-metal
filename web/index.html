@@ -7,25 +7,30 @@
   <body>
 
     <form>
-        <input type="file" id="image" />
+        <input type="file" id="image" accept=".ppm" />
     </form>
 
     <script type="module">
       import init, { processImage } from "../pkg/oxidized_metal.js";
 
       init().then(() => {
-        const input = document.getElementById("image"); // get our image file upload element
+        const input = document.getElementById("image");
         input.addEventListener("change", async () => {
-            const file = input.files[0]; // on change, get the first file
-            const reader = new FileReader(); // create a file reader
-            reader.readAsArrayBuffer(file); // read the file as raw binary data
-            const arrayBuffer = await new Promise((res, rej) => reader.onload = () => res(reader.result)); // promisify the load event to await it
-            const uint8Array = new Uint8Array(arrayBuffer); // convert the raw binary data to a typed array
-            try {
-              processImage(uint8Array); // pass the typed array to our WASM function
-            } catch (e) {
-              console.log(e);
-            }
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.readAsArrayBuffer(file);
+            const arrayBuffer = await new Promise((res, rej) => reader.onload = () => res(reader.result));
+            
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const image = processImage(uint8Array);
+
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = image.width;
+            canvas.height = image.height;
+            context.putImageData(image, 0, 0);
+
+            document.body.appendChild(canvas);
         });
       })
 
