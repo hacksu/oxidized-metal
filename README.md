@@ -219,3 +219,81 @@ impl Parser {
 }
 ``` 
 
+Now, let's use this data structure and do some parsing! First, we create a Parser object with our data:
+```Rust
+// inside our processImage function in Rust
+let mut parser = Parser {
+    data: data,
+    index: 0,
+};
+```
+
+Then, let's read out the variables we know are going to exist:
+```Rust
+let _magic_number = parser.read_ascii();
+let width: u32 = parser.read_ascii().parse().expect("Failed to convert width string to u32."); // talk about expect and panics
+let height: u32 = parser.read_ascii().parse().expect("Failed to convert height string to u32.");
+let _max_pixel_value = parser.read_ascii();
+let raw = parser.raw();
+```
+
+Now, let's modify the image to be greyscale, using this code:
+```Rust
+let mut output: Vec<u8> = Vec::new();
+let mut index = 0;
+while index < (width * height * 3) as usize {
+    let r = raw[index] as u32;
+    let g = raw[index + 1] as u32;
+    let b = raw[index + 2] as u32;
+    let avg = (r + g + b) / 3;
+    
+    for _ in 0..3 {
+        output.push(avg as u8)
+    }
+    output.push(u8::MAX);
+
+    index += 3;
+}
+```
+
+Finally, we let websys do the rest for us, creating an ImageData object and passing it back to JavaScript:
+```Rust
+let image = ImageData::new_with_u8_clamped_array_and_sh(wasm_bindgen::Clamped(&output), width, height).expect("Failed to create image data.");
+return image;
+```
+
+And that's it! Here's the full function:
+```Rust
+#[wasm_bindgen(js_name = processImage)]
+pub fn process_image(data: Vec<u8>) -> ImageData {
+    let mut parser = Parser {
+        data: data,
+        index: 0,
+    };
+
+    let _magic_number = parser.read_ascii();
+    let width: u32 = parser.read_ascii().parse().expect("Failed to convert width string to u32.");
+    let height: u32 = parser.read_ascii().parse().expect("Failed to convert height string to u32.");
+    let _max_pixel_value = parser.read_ascii();
+    let raw = parser.raw();
+
+    // convert our RGB image to an RBGA image, but it's greyscale
+    let mut output: Vec<u8> = Vec::new();
+    let mut index = 0;
+    while index < (width * height * 3) as usize {
+        let r = raw[index] as u32;
+        let g = raw[index + 1] as u32;
+        let b = raw[index + 2] as u32;
+        let avg = (r + g + b) / 3;
+        
+        for _ in 0..3 {
+            output.push(avg as u8)
+        }
+        output.push(u8::MAX);
+
+        index += 3;
+    }
+
+    let image = ImageData::new_with_u8_clamped_array_and_sh(wasm_bindgen::Clamped(&output), width, height).expect("Failed to create image data.");
+    return image;
+}```
