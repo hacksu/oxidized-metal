@@ -296,4 +296,5 @@ pub fn process_image(data: Vec<u8>) -> ImageData {
 
     let image = ImageData::new_with_u8_clamped_array_and_sh(wasm_bindgen::Clamped(&output), width, height).expect("Failed to create image data.");
     return image;
-}```
+}
+```
