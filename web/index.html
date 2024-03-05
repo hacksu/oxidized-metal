@@ -21,7 +21,11 @@
             reader.readAsArrayBuffer(file); // read the file as raw binary data
             const arrayBuffer = await new Promise((res, rej) => reader.onload = () => res(reader.result)); // promisify the load event to await it
             const uint8Array = new Uint8Array(arrayBuffer); // convert the raw binary data to a typed array
-            processImage(uint8Array); // pass the typed array to our WASM function
+            try {
+              processImage(uint8Array); // pass the typed array to our WASM function
+            } catch (e) {
+              console.log(e);
+            }
         });
       })
 
