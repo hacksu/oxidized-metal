@@ -299,10 +299,8 @@ pub fn process_image(data: Vec<u8>) -> ImageData {
 }
 ```
 
-This is our original image: 
-![I don't think the image loaded](./images/image.png)
-
-And here is our output:
-![I don't think the image loaded](./images/image_greyscale.png)
+Before             | After
+:-------------------------:|:-------------------------:
+![I don't think the image loaded](./images/image.png) | ![I don't think the image loaded](./images/image_greyscale.png)
 
 Pretty cool, right?
